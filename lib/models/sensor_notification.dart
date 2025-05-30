@@ -7,7 +7,6 @@ class SensorNotification {
   final Map<String, dynamic>? translationParams;
   final DateTime timestamp;
   final DateTime createdAt;
-  final DateTime? readAt;
 
   SensorNotification({
     required this.id,
@@ -18,24 +17,33 @@ class SensorNotification {
     this.translationParams,
     required this.timestamp,
     required this.createdAt,
-    this.readAt,
   });
 
   factory SensorNotification.fromJson(Map<String, dynamic> json) {
+    DateTime parseDateTime(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is int) {
+        // Assuming Unix timestamp in seconds
+        return DateTime.fromMillisecondsSinceEpoch(value * 1000);
+      }
+      if (value is String) {
+        return DateTime.parse(value);
+      }
+      throw Exception('Invalid date format');
+    }
+
     return SensorNotification(
       id: json['id'] ?? 0,
       deviceId: json['device_id'] ?? '',
       type: json['type'] ?? 'info',
       message: json['message'] ?? '',
       translationKey: json['translation_key'],
-      translationParams: json['translation_params'],
-      timestamp: DateTime.parse(
-        json['timestamp'] ?? DateTime.now().toIso8601String(),
-      ),
-      createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
-      ),
-      readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
+      translationParams:
+          json['translation_params'] != null
+              ? Map<String, dynamic>.from(json['translation_params'])
+              : null,
+      timestamp: parseDateTime(json['timestamp']),
+      createdAt: parseDateTime(json['created_at']),
     );
   }
 
@@ -49,12 +57,8 @@ class SensorNotification {
       'translation_params': translationParams,
       'timestamp': timestamp.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
-      'read_at': readAt?.toIso8601String(),
     };
   }
-
-  // Helper getters
-  bool get isRead => readAt != null;
 
   String get typeDisplayName {
     switch (type) {

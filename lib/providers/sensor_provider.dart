@@ -1,59 +1,65 @@
 import 'package:flutter/material.dart';
-import '../models/sensor_data.dart';
-import '../services/api_service.dart';
-import '../services/pusher_service.dart';
+import 'package:zheer/models/sensor_data.dart';
+import 'package:zheer/services/api_service.dart';
+import 'package:zheer/services/pusher_service.dart';
+import 'package:intl/intl.dart';
 
 class SensorProvider with ChangeNotifier {
   final ApiService apiService;
   final PusherService pusherService;
 
-  // Current device data - refreshed from API each time
   List<SensorData> _currentDeviceData = [];
   SensorData? _currentDeviceLatest;
   String _selectedDeviceId = '';
-  bool _isLoading = false;
   String? _errorMessage;
+  bool _isLoading = false;
+  String _currentFilter = 'daily'; // ✅ Tracks selected filter
+  List<DateTime> _dailyTimeData = [];
 
   SensorProvider(this.apiService, this.pusherService);
 
-  // Getters
   List<SensorData> get filteredData => _currentDeviceData;
   SensorData? get currentDeviceLatest => _currentDeviceLatest;
   String get selectedDeviceId => _selectedDeviceId;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String get currentFilter => _currentFilter;
+  List<DateTime> get dailyTimeData => _dailyTimeData;
 
-  // Load fresh data from API only
+  Future<void> loadDailyTimeData(String deviceId) async {
+    try {
+      final data = await apiService.getDailyTimeData(deviceId);
+      _dailyTimeData =
+          data.map((item) => DateTime.parse(item['created_at'])).toList();
+      notifyListeners();
+    } catch (e) {
+      print('Error loading daily time data: $e');
+      _dailyTimeData = [];
+      notifyListeners();
+    }
+  }
+
   Future<void> loadFilteredSensorData({
     required String deviceId,
     required String filter,
-    bool forceRefresh = false, // Keep for compatibility but always refresh
+    bool forceRefresh = false,
   }) async {
     _isLoading = true;
     _errorMessage = null;
     _selectedDeviceId = deviceId;
+    _currentFilter = filter; // ✅ Set active filter
     notifyListeners();
 
     try {
-      print(
-        '🔄 Loading fresh filtered data from API for $deviceId with filter: $filter',
-      );
-
-      // Always get fresh data from API
       final data = await apiService.getSensorDataFiltered(
         deviceId: deviceId,
         filter: filter,
       );
       _currentDeviceData = data;
-
-      // Also load the latest device data
       await loadCurrentDeviceLatest(deviceId);
-
-      print('✅ Loaded ${data.length} filtered records from API for $deviceId');
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      print('❌ loadFilteredSensorData error: $e');
       _errorMessage = e.toString();
       _currentDeviceData = [];
       _currentDeviceLatest = null;
@@ -62,92 +68,101 @@ class SensorProvider with ChangeNotifier {
     }
   }
 
-  // Fetch latest data for current device from API
   Future<void> loadCurrentDeviceLatest(String deviceId) async {
     try {
-      print('🔄 Loading fresh latest data from API for device: $deviceId');
-      final deviceData = await apiService.getDeviceData(deviceId);
-      _currentDeviceLatest = deviceData['latest'] as SensorData?;
-      print(
-        '✅ Loaded fresh latest data from API: ${_currentDeviceLatest?.deviceId} at ${_currentDeviceLatest?.createdAt}',
-      );
+      final response = await apiService.getDeviceData(deviceId);
+      _currentDeviceLatest = response['latest'] as SensorData?;
     } catch (e) {
-      print('❌ loadCurrentDeviceLatest error: $e');
       _currentDeviceLatest = null;
     }
   }
 
-  // Refresh only the current device's latest data from API
   Future<void> refreshCurrentDeviceLatest() async {
     if (_selectedDeviceId.isNotEmpty) {
-      print('🔄 Refreshing latest data from API for: $_selectedDeviceId');
       await loadCurrentDeviceLatest(_selectedDeviceId);
       notifyListeners();
     }
   }
 
-  // Handle real-time updates from Pusher
   void updateDeviceDataRealtime(String deviceId, SensorData newData) {
-    print('📨 Received realtime update for device: $deviceId');
+    if (_selectedDeviceId != deviceId) return;
 
-    // Update current device's filtered data if it matches
-    if (_selectedDeviceId == deviceId && _currentDeviceData.isNotEmpty) {
-      _currentDeviceData.insert(0, newData);
-      // Keep only recent data to prevent memory issues
-      if (_currentDeviceData.length > 100) {
-        _currentDeviceData.removeLast();
+    _currentDeviceLatest = newData;
+
+    bool isSameGroup(SensorData entry) {
+      switch (_currentFilter) {
+        case 'weekly':
+          return entry.createdAt.weekday == newData.createdAt.weekday;
+        case 'monthly':
+          return entry.createdAt.day == newData.createdAt.day;
+        default: // 'daily'
+          return entry.createdAt.hour == newData.createdAt.hour;
       }
     }
 
-    // Update latest data if it matches current device
-    if (_selectedDeviceId == deviceId) {
-      _currentDeviceLatest = newData;
-      print('✅ Updated current device latest data via realtime');
+    final index = _currentDeviceData.indexWhere(isSameGroup);
+
+    if (index != -1) {
+      final existing = _currentDeviceData[index];
+      _currentDeviceData[index] = SensorData(
+        deviceId: existing.deviceId,
+        status: newData.status,
+        temperature: (existing.temperature + newData.temperature) / 2,
+        battery: newData.battery,
+        count: existing.count + 1,
+        createdAt: existing.createdAt,
+        dateLabel: existing.dateLabel,
+      );
+    } else {
+      final label = () {
+        switch (_currentFilter) {
+          case 'weekly':
+            return DateFormat('E').format(newData.createdAt);
+          case 'monthly':
+            return newData.createdAt.day.toString();
+          default:
+            return DateFormat('HH:00').format(newData.createdAt);
+        }
+      }();
+
+      _currentDeviceData.add(
+        SensorData(
+          deviceId: newData.deviceId,
+          status: newData.status,
+          temperature: newData.temperature,
+          battery: newData.battery,
+          count: 1,
+          createdAt: newData.createdAt,
+          dateLabel: label,
+        ),
+      );
     }
 
     notifyListeners();
   }
 
-  // Initialize real-time updates
   void initializeRealtimeUpdates() {
     try {
       pusherService.subscribeToChannel('sensor-data');
       pusherService.bindEvent('SensorDataUpdated', (data) {
         try {
-          print("📨 SensorProvider received realtime update");
-          print("📨 Data: $data");
-
-          Map<String, dynamic> sensorJson;
-          if (data is Map<String, dynamic>) {
-            sensorJson = data;
-          } else {
-            print(
-              "❌ Invalid sensor data format, expected Map but got: ${data.runtimeType}",
-            );
-            return;
-          }
-
-          final sensor = SensorData.fromJson(sensorJson);
+          final sensor = SensorData.fromJson(data);
           updateDeviceDataRealtime(sensor.deviceId, sensor);
-          print("✅ SensorProvider updated device: ${sensor.deviceId}");
         } catch (e) {
-          print('❌ Error in SensorProvider realtime data parse: $e');
+          print('Realtime parse error: $e');
         }
       });
-
-      print("✅ SensorProvider realtime updates initialized");
     } catch (e) {
-      print("❌ Failed to initialize SensorProvider realtime updates: $e");
+      print('Pusher init error: $e');
     }
   }
 
-  // Clear all data (for when switching devices or refreshing)
   void clearCurrentData() {
     _currentDeviceData.clear();
     _currentDeviceLatest = null;
     _selectedDeviceId = '';
     _errorMessage = null;
-    print('🗑️ Cleared all current device data');
+    _dailyTimeData = [];
   }
 
   @override

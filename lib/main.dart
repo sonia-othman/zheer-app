@@ -7,9 +7,11 @@ import 'package:zheer/services/pusher_service.dart';
 import 'package:zheer/providers/sensor_provider.dart';
 import 'package:zheer/providers/notification_provider.dart';
 import 'package:zheer/providers/language_provider.dart';
-import 'package:zheer/screens/home_screen.dart';
 import 'package:zheer/providers/home_sensor_provider.dart';
+
 import 'dart:io';
+
+import 'package:zheer/widgets/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +37,14 @@ void main() async {
 
         // Then provide other services that don't depend on context
         ChangeNotifierProvider(create: (_) => LanguageProvider(apiService)),
-        ChangeNotifierProvider(create: (_) => NotificationProvider(apiService)),
+
+        // Updated NotificationProvider with PusherService
+        ChangeNotifierProvider(
+          create:
+              (_) =>
+                  NotificationProvider(apiService, pusherService)
+                    ..initializeRealtimeNotifications(),
+        ),
 
         // Now provide services that depend on PusherService
         ChangeNotifierProvider(
@@ -77,6 +86,7 @@ class MyApp extends StatelessWidget {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Smart Sensor Dashboard',
       locale: languageProvider.currentLocale,
       supportedLocales: const [
@@ -90,7 +100,7 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const HomeScreen(),
+      home: const MainScreen(),
     );
   }
 }

@@ -166,6 +166,25 @@ class ApiService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getDailyTimeData(String deviceId) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '${config.apiBaseUrl}/api/daily-time-data?device_id=$deviceId',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      }
+      throw Exception('Failed with status ${response.statusCode}');
+    } catch (e) {
+      print('Error getting daily time data: $e');
+      rethrow;
+    }
+  }
+
   Future<List<dynamic>> getSensorData({
     String? deviceId,
     String? filter,
@@ -187,13 +206,10 @@ class ApiService {
 
   // Notification Methods
   Future<List<dynamic>> getNotifications({int page = 1, int limit = 20}) async {
-    final response = await _getJson('notifications?page=$page&limit=$limit');
+    final response = await _getJson(
+      'api/notifications?page=$page&limit=$limit',
+    );
     return List<dynamic>.from(response['notifications'] ?? []);
-  }
-
-  Future<bool> markNotificationsAsRead(List<String> ids) async {
-    final response = await _post('api/notifications/mark-read', {'ids': ids});
-    return response['success'] ?? false;
   }
 
   // Language Methods
