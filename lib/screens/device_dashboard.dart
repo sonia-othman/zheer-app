@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 import 'package:zheer/widgets/custom_app_bar.dart';
+import 'package:zheer/l10n/generated/app_localizations.dart';
 import '../models/sensor_data.dart';
 import '../providers/sensor_provider.dart';
 
@@ -22,6 +23,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     provider = Provider.of<SensorProvider>(context, listen: false);
+    provider.initializeRealtimeUpdates();
     _loadFreshData();
   }
 
@@ -43,9 +45,11 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Color(0xFFF8FAFD),
-      appBar: CustomAppBar(title: 'Device Dashboard'),
+      appBar: CustomAppBar(title: l10n.deviceDashboard),
       body: Consumer<SensorProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
@@ -62,7 +66,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                   Icon(Icons.error_outline, color: Color(0xFFE74C3C), size: 60),
                   SizedBox(height: 16),
                   Text(
-                    'Error Loading Data',
+                    l10n.errorLoadingData,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -89,7 +93,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                     ),
                     onPressed: _loadFreshData,
                     child: Text(
-                      'Try Again',
+                      l10n.tryAgain,
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -107,21 +111,20 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Device ID: ${widget.deviceId}',
+                    '${l10n.deviceDashboard} - ${widget.deviceId}',
                     style: TextStyle(
                       fontFamily: 'NotoSansArabic',
-
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF23538F),
                     ),
                   ),
                   SizedBox(height: 20),
-                  _summaryCards(),
+                  _summaryCards(l10n),
                   SizedBox(height: 24),
-                  _filterSelector(),
+                  _filterSelector(l10n),
                   SizedBox(height: 16),
-                  _chartSection(provider.filteredData),
+                  _chartSection(provider.filteredData, l10n),
                 ],
               ),
             ),
@@ -131,11 +134,9 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
     );
   }
 
-  Widget _summaryCards() {
+  Widget _summaryCards(AppLocalizations l10n) {
     final latest = provider.currentDeviceLatest;
-    if (latest == null) {
-      return Center(child: CircularProgressIndicator());
-    }
+    if (latest == null) return Center(child: CircularProgressIndicator());
 
     return GridView.count(
       shrinkWrap: true,
@@ -147,32 +148,32 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
       padding: EdgeInsets.zero,
       children: [
         _summaryTile(
-          'Status',
-          latest.status ? 'Opened' : 'Closed',
+          l10n.status,
+          latest.status ? l10n.opened : l10n.closed,
           icon: latest.status ? Icons.door_back_door : Icons.door_front_door,
-          color: latest.status ? Color(0xFF2ECC71) : Color(0xFFE74C3C),
-          iconBg: latest.status ? Color(0xFFE8F8EF) : Color(0xFFFDECEC),
+          color: latest.status ? Color(0xFFE74C3C) : Color(0xFF2ECC71),
+          iconBg: latest.status ? Color(0xFFFDECEC) : Color(0xFFE8F8EF),
         ),
         _summaryTile(
-          'Temperature',
+          l10n.temperature,
           '${latest.temperature} °C',
           icon: Icons.thermostat,
-          color: Color.fromARGB(255, 186, 24, 24),
-          iconBg: Color.fromARGB(255, 248, 234, 234),
+          color: Color(0xFFBA1818),
+          iconBg: Color(0xFFF8EAEA),
         ),
         _summaryTile(
-          'Battery',
-          '${latest.battery.toStringAsFixed(0)} %',
+          l10n.battery,
+          '${latest.battery.toStringAsFixed(1)} V',
           icon: Icons.battery_charging_full,
-          color: Color.fromARGB(255, 16, 140, 26),
-          iconBg: Color.fromARGB(255, 231, 254, 234),
+          color: Color.fromARGB(255, 239, 142, 5),
+          iconBg: Color.fromARGB(255, 254, 246, 231),
         ),
         _summaryTile(
-          'Count',
+          l10n.count,
           '${latest.count}',
           icon: Icons.numbers,
           color: Color(0xFF23538F),
-          iconBg: Color.fromARGB(255, 238, 241, 248),
+          iconBg: Color(0xFFEEF1F8),
         ),
       ],
     );
@@ -234,8 +235,35 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
     );
   }
 
-  Widget _chartSection(List<SensorData> data) {
-    if (data.isEmpty) {
+  Widget _chartSection(List<SensorData> data, AppLocalizations l10n) {
+    List<SensorData> chartData = data;
+
+    if (chartData.isEmpty && filter == 'daily') {
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final fallback =
+          provider.dailyTimeData.where((dt) {
+            return DateFormat('yyyy-MM-dd').format(dt) == today;
+          }).toList();
+
+      if (fallback.isNotEmpty) {
+        chartData =
+            fallback.map((dt) {
+              return SensorData(
+                deviceId: '',
+                status: false,
+                temperature: 0,
+                battery: 0,
+                count: 1,
+                createdAt: dt,
+                dateLabel: DateFormat('h:mm a').format(dt),
+              );
+            }).toList();
+
+        print('✅ Using dailyTimeData fallback: ${chartData.length} items');
+      }
+    }
+
+    if (chartData.isEmpty) {
       return Container(
         padding: EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -243,19 +271,16 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
-          child: Text(
-            'No data available for selected time range',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
+          child: Text(l10n.noData, style: TextStyle(color: Colors.grey[600])),
         ),
       );
     }
 
     return Column(
       children: [
-        _barChart('Event Count', data),
+        _barChart(l10n.eventCount, chartData),
         SizedBox(height: 16),
-        _combinedChart(data),
+        _combinedChart(chartData, l10n),
       ],
     );
   }
@@ -307,6 +332,8 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                   enable: true,
                   color: Color(0xFF2E3B4E),
                 ),
+                // ✅ Enable real-time updates
+                enableAxisAnimation: true,
                 series: <CartesianSeries<SensorData, String>>[
                   ColumnSeries<SensorData, String>(
                     dataSource: data,
@@ -322,6 +349,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(4),
                     ),
+                    // ✅ Store controller reference
                   ),
                 ],
               ),
@@ -332,7 +360,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
     );
   }
 
-  Widget _combinedChart(List<SensorData> data) {
+  Widget _combinedChart(List<SensorData> data, AppLocalizations l10n) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -351,7 +379,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Temperature & Battery Levels',
+              l10n.tempAndBattery,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -364,9 +392,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
               child: SfCartesianChart(
                 margin: EdgeInsets.zero,
                 plotAreaBorderWidth: 0,
-                primaryXAxis: DateTimeAxis(
-                  dateFormat: DateFormat.Hm(),
-                  intervalType: DateTimeIntervalType.hours,
+                primaryXAxis: CategoryAxis(
                   labelStyle: TextStyle(color: Colors.grey[600]),
                   axisLine: AxisLine(width: 0),
                   majorTickLines: MajorTickLines(size: 0),
@@ -385,11 +411,18 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                   position: LegendPosition.top,
                   overflowMode: LegendItemOverflowMode.wrap,
                 ),
-                series: <CartesianSeries<SensorData, DateTime>>[
-                  LineSeries<SensorData, DateTime>(
+                // ✅ Enable real-time updates
+                enableAxisAnimation: true,
+                series: <CartesianSeries<SensorData, String>>[
+                  LineSeries<SensorData, String>(
                     dataSource: data,
-                    xValueMapper: (SensorData sensor, _) => sensor.createdAt,
-                    yValueMapper: (SensorData sensor, _) => sensor.temperature,
+                    xValueMapper:
+                        (sensor, _) =>
+                            sensor.dateLabel ??
+                            DateFormat(
+                              'h:mm a',
+                            ).format(sensor.createdAt.toLocal()),
+                    yValueMapper: (sensor, _) => sensor.temperature,
                     name: 'Temperature (°C)',
                     color: Color(0xFFE74C3C),
                     width: 2.5,
@@ -400,12 +433,18 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                       borderColor: Color(0xFFE74C3C),
                       color: Colors.white,
                     ),
+                    // ✅ Store controller reference
                   ),
-                  LineSeries<SensorData, DateTime>(
+                  LineSeries<SensorData, String>(
                     dataSource: data,
-                    xValueMapper: (SensorData sensor, _) => sensor.createdAt,
-                    yValueMapper: (SensorData sensor, _) => sensor.battery,
-                    name: 'Battery (%)',
+                    xValueMapper:
+                        (sensor, _) =>
+                            sensor.dateLabel ??
+                            DateFormat(
+                              'h:mm a',
+                            ).format(sensor.createdAt.toLocal()),
+                    yValueMapper: (sensor, _) => sensor.battery,
+                    name: 'Battery (V)',
                     color: Color(0xFF2ECC71),
                     width: 2.5,
                     markerSettings: MarkerSettings(
@@ -415,6 +454,8 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                       borderColor: Color(0xFF2ECC71),
                       color: Colors.white,
                     ),
+                    // ✅ Store controller reference
+                    onRendererCreated: (ChartSeriesController controller) {},
                   ),
                 ],
               ),
@@ -425,7 +466,7 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
     );
   }
 
-  Widget _filterSelector() {
+  Widget _filterSelector(AppLocalizations l10n) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -449,7 +490,12 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      f.toUpperCase(),
+                      (f == 'daily'
+                              ? l10n.daily
+                              : f == 'weekly'
+                              ? l10n.weekly
+                              : l10n.monthly)
+                          .toUpperCase(),
                       style: TextStyle(
                         color: filter == f ? Colors.white : Color(0xFF4E7ABA),
                         fontWeight: FontWeight.w500,

@@ -16,6 +16,9 @@ class NotificationProvider with ChangeNotifier {
   bool get hasMore => _hasMore;
   bool get isRealtimeConnected => pusherService.isConnected;
 
+  // Get count of unread notifications
+  int get unreadCount => _notifications.where((n) => n['read'] == false).length;
+
   // Initialize real-time notifications
   Future<void> initializeRealtimeNotifications() async {
     if (_isRealtimeInitialized) return;
@@ -78,6 +81,9 @@ class NotificationProvider with ChangeNotifier {
         'device_id': alertData['device_id'],
         'sensor_value': alertData['sensor_value'],
         'threshold': alertData['threshold'],
+        'read': false, // Mark new notifications as unread
+        'translation_key': alertData['translation_key'],
+        'translation_params': alertData['translation_params'],
         // Add any other fields from your alert data
         ...alertData,
       };
@@ -90,7 +96,16 @@ class NotificationProvider with ChangeNotifier {
       'type': 'info',
       'created_at': DateTime.now().toIso8601String(),
       'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'read': false, // Mark new notifications as unread
     };
+  }
+
+  // Mark all notifications as read (call this when notification screen is opened)
+  void markAllAsRead() {
+    for (var notification in _notifications) {
+      notification['read'] = true;
+    }
+    notifyListeners();
   }
 
   // Reset pagination and clear old notifications
@@ -101,17 +116,42 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Replace the loadNotifications method in your NotificationProvider with this:
+
   Future<void> loadNotifications() async {
     try {
-      final newNotifications = await apiService.getNotifications(
+      print('📡 Loading notifications - Page: $_currentPage');
+
+      final response = await apiService.getNotifications(
         page: _currentPage,
+        limit: 20,
       );
-      _notifications.addAll(newNotifications);
-      _hasMore = newNotifications.isNotEmpty;
+
+      final newNotifications = response['notifications'] as List<dynamic>;
+      final hasMoreFromApi = response['hasMore'] as bool;
+
+      print('📦 Received ${newNotifications.length} notifications from API');
+
+      // Add read status to existing notifications (they're considered read)
+      final processedNotifications =
+          newNotifications.map((notification) {
+            if (notification is Map<String, dynamic>) {
+              notification['read'] = true; // Existing notifications are read
+            }
+            return notification;
+          }).toList();
+
+      _notifications.addAll(processedNotifications);
+      _hasMore = hasMoreFromApi;
       _currentPage++;
+
       notifyListeners();
+
+      print(
+        '✅ Total notifications now: ${_notifications.length}, hasMore: $_hasMore',
+      );
     } catch (e) {
-      print("Error loading notifications: $e");
+      print('❌ Error loading notifications: $e');
       rethrow;
     }
   }

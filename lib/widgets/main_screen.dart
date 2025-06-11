@@ -16,17 +16,39 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [const HomeScreen(), const NotificationScreen()];
 
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize real-time notifications when the main screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final notificationProvider = Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      );
+      notificationProvider.initializeRealtimeNotifications();
+    });
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+
+    // Mark notifications as read when notification tab is tapped
+    if (index == 1) {
+      final notificationProvider = Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      );
+      notificationProvider.markAllAsRead();
+    }
   }
 
   Widget _buildNotificationIcon(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, provider, child) {
-        final unreadCount =
-            provider.notifications.where((n) => n['read'] == false).length;
+        final unreadCount = provider.unreadCount;
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -46,13 +68,42 @@ class _MainScreenState extends State<MainScreen> {
                     minHeight: 18,
                   ),
                   child: Text(
-                    unreadCount.toString(),
+                    unreadCount > 99 ? '99+' : unreadCount.toString(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Alternative: Simple red dot indicator (if you prefer just a dot instead of count)
+  Widget _buildNotificationIconWithDot(BuildContext context) {
+    return Consumer<NotificationProvider>(
+      builder: (context, provider, child) {
+        final hasUnread = provider.hasUnreadNotifications;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.notifications),
+            if (hasUnread)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
                 ),
               ),
@@ -72,7 +123,9 @@ class _MainScreenState extends State<MainScreen> {
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: _buildNotificationIcon(context),
+            icon: _buildNotificationIcon(
+              context,
+            ), // Use _buildNotificationIconWithDot for simple dot
             label: 'Notifications',
           ),
         ],

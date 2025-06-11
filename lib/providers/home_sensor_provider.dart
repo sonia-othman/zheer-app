@@ -10,8 +10,12 @@ class HomeSensorProvider extends ChangeNotifier {
   List<SensorData> _latestDevices = [];
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // ✅ Store callback reference for proper cleanup
+  late Function(dynamic) _realtimeCallback;
 
   HomeSensorProvider(this._apiService, this._pusherService) {
+    _realtimeCallback = _handleRealtimeUpdate;
     _initPusher();
   }
 
@@ -20,112 +24,94 @@ class HomeSensorProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Fetch fresh data from API every time
   Future<void> fetchLatestDevices() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      print('🔄 Fetching fresh latest devices from API...');
+      print('🔄 HomeSensor: Fetching fresh data from API...');
 
-      // Always get fresh data from API
       final data = await _apiService.getLatestDevices();
       _latestDevices = data.map((json) => SensorData.fromJson(json)).toList();
 
-      print('✅ Loaded ${_latestDevices.length} devices from API');
-
-      // Debug: Print each device
-      for (int i = 0; i < _latestDevices.length; i++) {
-        final device = _latestDevices[i];
-        print(
-          'Device $i: ${device.deviceId}, Status: ${device.status}, Temp: ${device.temperature}',
-        );
-      }
+      print('✅ HomeSensor: Loaded ${_latestDevices.length} devices');
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      print('❌ Error fetching latest devices from API: $e');
+      print('❌ HomeSensor: API error: $e');
       _errorMessage = e.toString();
       _isLoading = false;
-      _latestDevices = []; // Clear on error
+      _latestDevices = [];
       notifyListeners();
     }
   }
 
-  // Force refresh from API
   Future<void> refreshFromAPI() async {
-    print('🔄 Force refreshing from API...');
+    print('🔄 HomeSensor: Force refresh...');
     await fetchLatestDevices();
   }
 
-  // Initialize Pusher for real-time updates
   void _initPusher() async {
     try {
+      print("📡 HomeSensor: Initializing Pusher...");
+      
+      // ✅ Subscribe to channel
       await _pusherService.subscribeToChannel('sensor-data');
-      _pusherService.bindEvent('SensorDataUpdated', _handleRealtimeUpdate);
-      print("✅ Pusher initialized for HomeSensorProvider");
+
+      // ✅ Bind with callback reference
+      _pusherService.bindEvent('SensorDataUpdated', _realtimeCallback);
+
+      print("✅ HomeSensor: Pusher ready");
     } catch (e) {
-      print("❌ Pusher initialization failed: $e");
+      print("❌ HomeSensor: Pusher init failed: $e");
     }
   }
 
-  // Handle real-time updates
   void _handleRealtimeUpdate(dynamic data) {
     try {
-      print("📨 HomeSensorProvider received realtime update");
-      print("📨 Data type: ${data.runtimeType}");
-      print("📨 Data content: $data");
+      print("📨 HomeSensor: Realtime update received");
+      print("📨 HomeSensor: Data: $data");
 
-      Map<String, dynamic> sensorJson;
-      if (data is Map<String, dynamic>) {
-        sensorJson = data;
-      } else {
-        print(
-          "❌ Invalid data format, expected Map but got: ${data.runtimeType}",
-        );
+      if (data is! Map<String, dynamic>) {
+        print("❌ HomeSensor: Invalid data format");
         return;
       }
 
-      final updated = SensorData.fromJson(sensorJson);
-      print(
-        "✅ Parsed sensor data: Device ${updated.deviceId}, Temp: ${updated.temperature}",
-      );
+      final updated = SensorData.fromJson(data);
+      print("✅ HomeSensor: Parsed device: ${updated.deviceId}");
 
-      // Update the device in the list
       final index = _latestDevices.indexWhere(
         (d) => d.deviceId == updated.deviceId,
       );
-
+      
       if (index != -1) {
-        // Update existing device
         _latestDevices[index] = updated;
-        print("✅ Updated existing device: ${updated.deviceId}");
+        print("♻️ HomeSensor: Updated existing device: ${updated.deviceId}");
       } else {
-        // Add new device to the beginning of the list
         _latestDevices.insert(0, updated);
-        print("✅ Added new device: ${updated.deviceId}");
+        print("🆕 HomeSensor: Added new device: ${updated.deviceId}");
       }
 
       notifyListeners();
     } catch (e) {
-      print("❌ Realtime update failed: $e");
-      print("❌ Data that caused error: $data");
+      print("❌ HomeSensor: Realtime error: $e");
     }
   }
 
-  // Clear all data
   void clearData() {
     _latestDevices.clear();
     _errorMessage = null;
-    print('🗑️ Cleared all home sensor data');
+    print('🗑️ HomeSensor: Data cleared');
     notifyListeners();
   }
 
   @override
   void dispose() {
-    _pusherService.unbindEvent('SensorDataUpdated');
+    // ✅ Properly unbind the specific callback
+    _pusherService.unbindEvent('SensorDataUpdated', _realtimeCallback);
+    print('🔌 HomeSensor: Disposed');
     super.dispose();
   }
 }

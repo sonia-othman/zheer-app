@@ -5,6 +5,7 @@ import 'package:zheer/widgets/custom_app_bar.dart';
 import 'package:zheer/widgets/device_card.dart';
 import 'package:zheer/providers/home_sensor_provider.dart';
 import 'package:zheer/models/sensor_data.dart';
+import 'package:zheer/l10n/generated/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -34,9 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(title: 'Home', showBackButton: false),
+    final l10n = AppLocalizations.of(context)!;
 
+    return Scaffold(
+      appBar: CustomAppBar(title: l10n.home, showBackButton: false),
       body: Consumer<HomeSensorProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
@@ -56,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Icon(Icons.error, color: Colors.red, size: 64),
                   const SizedBox(height: 16),
                   Text(
-                    'API Error',
+                    l10n.apiError,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
@@ -72,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ElevatedButton.icon(
                     onPressed: _forceRefresh,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Retry API Call'),
+                    label: Text(l10n.retryApiCall),
                   ),
                 ],
               ),
@@ -93,7 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(8),
-                    // At the bottom of your devices list, add unregistered cards:
                     itemCount: provider.latestDevices.length + 2,
                     itemBuilder: (context, index) {
                       if (index >= provider.latestDevices.length) {
@@ -101,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             index - provider.latestDevices.length;
                         return DeviceCard(
                           sensorData: SensorData(
-                            deviceId: 'Unregistered-${unregisteredIndex + 1}',
+                            deviceId: 'unregistered-${unregisteredIndex + 1}',
                             status: false,
                             temperature: 0,
                             battery: 0,
@@ -110,6 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             dateLabel: null,
                           ),
                           isUnregistered: true,
+                          deviceIndex:
+                              unregisteredIndex, // Pass the device index
                         );
                       }
                       final device = provider.latestDevices[index];
@@ -125,7 +128,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           );
                         },
-                        child: DeviceCard(sensorData: device),
+                        child: DeviceCard(
+                          sensorData: device,
+                          deviceIndex:
+                              index, // Pass the device index for registered devices too
+                        ),
                       );
                     },
                   ),

@@ -1,0 +1,76 @@
+{
+  "@@locale": "ku",
+  "appTitle": "داشبۆردی سێنسەری زیرەک",
+  
+  "home": "سەرەکی",
+  "notifications": "ئاگادارکردنەوەکان",
+  "deviceDashboard": "داشبۆردی ئامێر",
+  "settings": "ڕێکخستنەکان",
+  
+  "deviceId": "ناسنامەی ئامێر",
+  "status": "دۆخ",
+  "temperature": "پلەی گەرمی",
+  "battery": "پاتری",
+  "count": "ژمارە",
+  "noData": "هیچ داتایەک بەردەست نییە",
+  "tempAndBattery": "پلەی گەرمی و پاتری",
+  "noNotifications": "هیچ ئاگادارکردنەوەیەک بەردەست نییە",
+  "opened": "کراوەتەوە",
+  "closed": "داخراوە",
+  
+  "daily": "ڕۆژانە",
+  "weekly": "هەفتانە",
+  "monthly": "مانگانە",
+  
+  "errorLoadingData": "هەڵە لە بارکردنی داتا",
+  "tryAgain": "دووبارە هەوڵ بدەوە",
+  "refresh": "نوێکردنەوە",
+  "loadMore": "زیاتر  ببینە",
+  
+  "apiError": "هەڵەی API",
+  "retryApiCall": "دووبارە API بانگ بکە",
+  
+  "noDataAvailable": "هیچ داتایەک بەردەست نییە بۆ ئەو کاتەی دیاریکراوە",
+  "noNotificationsAvailable": "هیچ ئاگادارکردنەوەیەک بەردەست نییە",
+  "noMoreNotifications": "هیچ ئاگادارکردنەوەی تری نییە",
+  
+  "eventCount": "ژمارەی ڕووداو",
+  "temperatureBatteryLevels": "ئاستی پلەی گەرمی و پاتری",
+  "temperatureC": "پلەی گەرمی (°س)",
+  "batteryPercent": "پاتری (%)",
+
+  "allTypes": "هەموو جۆرەکان",
+  "success": "سەرکەوتوو",
+  "info": "زانیاری",
+  "danger": "مەترسی",
+  "warning": "ئاگاداری",
+  "door_opened": "دەرگاکە کرایەوە 🚪",
+  "door_closed": "دەرگاکە داخرا ✅",
+  "temp_too_high": "بەرزترین پلەی گەرمی {temperature}°C 🔥",
+  "temp_too_low": "نزمترین پلەی گەرمی {temperature}°C ❄️",
+  "connection_lost": "پەیوەندیو بە سێنسەرەکەوە نەما ❌",
+  "battery_critical": "نزمترین ئاستی پاتری: {battery}V 🔋",
+  "battery_low": "ئاستی پاتریەکە نزمە: {battery}V ⚠️",
+  "door_open_too_long": "دەرگا بۆ ماوەی زیاتر لە {minutes} خولەکە کراوەیە  ⚠️",
+  "justNow": "ئێستا",
+  "minutesAgo": "{minutes} خولەک پێش ئێستا",
+  "hoursAgo": "{hours} کاتژمێر پێش ئێستا",
+  
+  "unknownDate": "بەرواری نەزانراو",
+  "invalidDate": "بەرواری هەڵە",
+  
+  "device": "ئامێر",
+  "unregistered": "تۆمار نەکراوە",
+  "retry": "دووبارە هەوڵ بدەوە",
+  "deviceStats": "ئاماری ئامێر",
+  "firstDevice": "ئامێری یەکەم",
+  "secondDevice": "ئامێری دووەم",
+  "thirdDevice": "ئامێری سێیەم", 
+  "labDoor": "دەرگای تاقیگەی IoT",
+  "labWindow": "پەنجەرەی تاقیگەی IoT",
+  "department": "دۆڵابی بەش",
+  "notAvailable": "بەردەست نییە",
+  "sensorNotRegistered": "هەستەوەر تۆمار نەکراوە",
+  "temperatureShort": "پلە"
+
+}

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:zheer/utils/notification_translator.dart';
 import 'package:zheer/widgets/custom_app_bar.dart';
+import 'package:zheer/l10n/generated/app_localizations.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -37,8 +39,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: CustomAppBar(title: 'Notifications', showBackButton: false),
+      appBar: CustomAppBar(title: l10n.notifications, showBackButton: false),
       body: Consumer<NotificationProvider>(
         builder: (context, provider, child) {
           final filteredNotifications =
@@ -63,17 +67,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             color: Colors.grey,
                           ),
                           const SizedBox(height: 16),
-                          Text(
-                            'No notifications available',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
                         ],
                       ),
                   const SizedBox(height: 20),
                   if (!provider.hasMore)
                     TextButton(
                       onPressed: _loadFirstPage,
-                      child: const Text('Refresh'),
+                      child: Text(l10n.refresh),
                     ),
                 ],
               ),
@@ -84,7 +84,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             onRefresh: () => provider.refreshNotifications(),
             child: Column(
               children: [
-                // Filter dropdown - matches Vue design
+                // Filter dropdown
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Row(
@@ -102,19 +102,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           items: [
                             DropdownMenuItem(
                               value: '',
-                              child: Text('All types'),
+                              child: Text(l10n.allTypes),
                             ),
                             DropdownMenuItem(
                               value: 'success',
-                              child: Text('Success'),
+                              child: Text(l10n.success),
                             ),
                             DropdownMenuItem(
                               value: 'info',
-                              child: Text('Info'),
+                              child: Text(l10n.info),
                             ),
                             DropdownMenuItem(
                               value: 'danger',
-                              child: Text('Danger'),
+                              child: Text(l10n.danger),
                             ),
                           ],
                           onChanged: (value) {
@@ -135,9 +135,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     itemCount: filteredNotifications.length + 1,
                     itemBuilder: (context, index) {
                       if (index == filteredNotifications.length) {
-                        // Load more indicator or button
                         if (provider.hasMore) {
-                          _loadMore(); // Auto load more when scrolled to bottom
+                          _loadMore();
                           return Padding(
                             padding: const EdgeInsets.all(16),
                             child: Center(
@@ -146,16 +145,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                       ? const CircularProgressIndicator()
                                       : ElevatedButton(
                                         onPressed: _loadMore,
-                                        child: const Text('Load More'),
+                                        child: Text(l10n.loadMore),
                                       ),
                             ),
                           );
                         } else {
-                          return const Padding(
-                            padding: EdgeInsets.all(16),
+                          return Padding(
+                            padding: const EdgeInsets.all(16),
                             child: Center(
                               child: Text(
-                                'No more notifications',
+                                l10n.noMoreNotifications,
                                 style: TextStyle(color: Colors.grey),
                               ),
                             ),
@@ -208,8 +207,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   void _handleNotificationTap(Map<String, dynamic> notification) {
     if (notification['device_id'] != null) {
-      // Navigator.pushNamed(context, '/device-detail',
-      //                    arguments: notification['device_id']);
+      // Navigate to device detail if needed
     }
   }
 }
@@ -226,29 +224,33 @@ class NotificationCard extends StatelessWidget {
     this.onTap,
   }) : super(key: key);
 
-  String _formatDate(dynamic dateValue) {
+  String _formatDate(BuildContext context, dynamic dateValue) {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       DateTime date;
 
       if (dateValue == null) {
-        return 'Unknown date';
+        return l10n.unknownDate;
       } else if (dateValue is int) {
         date = DateTime.fromMillisecondsSinceEpoch(dateValue * 1000);
       } else if (dateValue is String) {
         date = DateTime.parse(dateValue);
       } else {
-        return 'Invalid date';
+        return l10n.invalidDate;
       }
 
       final now = DateTime.now();
       final difference = now.difference(date);
 
       if (difference.inMinutes < 1) {
-        return 'Just now';
+        return l10n.justNow;
       } else if (difference.inMinutes < 60) {
-        return '${difference.inMinutes}m ago';
+        // Fixed: Use the proper localization method
+        return l10n.minutesAgo(difference.inMinutes);
       } else if (difference.inHours < 24) {
-        return '${difference.inHours}h ago';
+        // Fixed: Use the proper localization method
+        return l10n.hoursAgo(difference.inHours);
       } else {
         return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
       }
@@ -274,16 +276,18 @@ class NotificationCard extends StatelessWidget {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     final type = notification['type']?.toString() ?? 'info';
     final color = _getTypeColor(type);
-
-    // Always use 'message' field if available, otherwise fallback to 'body' or empty string
-    final message =
-        notification['message']?.toString() ??
-        notification['body']?.toString() ??
-        '';
+    final message = NotificationTranslator.translate(
+      context: context,
+      key:
+          notification['translation_key'], // Use 'translation_key' instead of 'key'
+      rawData:
+          notification['translation_params'], // Use 'translation_params' instead of 'data'
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -313,7 +317,7 @@ class NotificationCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      message, // Always show the message here
+                      message,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
@@ -323,6 +327,7 @@ class NotificationCard extends StatelessWidget {
                   ),
                   Text(
                     _formatDate(
+                      context,
                       notification['created_at'] ?? notification['timestamp'],
                     ),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
@@ -333,7 +338,7 @@ class NotificationCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'Device: ${notification['device_id']}',
+                    '${l10n.device}: ${notification['device_id']}',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ),

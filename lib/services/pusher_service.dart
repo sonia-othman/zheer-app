@@ -5,7 +5,9 @@ import 'dart:convert';
 class PusherService {
   final AppConfig config;
   late PusherChannelsFlutter pusher;
-  final Map<String, Function(dynamic)> _eventCallbacks = {};
+
+  // ✅ Support multiple callbacks per event
+  final Map<String, List<Function(dynamic)>> _eventCallbacks = {};
   bool _isConnected = false;
   final Set<String> _subscribedChannels = {};
 
@@ -23,7 +25,6 @@ class PusherService {
           print("🔄 Pusher connection: $previousState -> $currentState");
           _isConnected = currentState == 'CONNECTED';
 
-          // Re-subscribe to channels when reconnected
           if (currentState == 'CONNECTED' && _subscribedChannels.isNotEmpty) {
             _resubscribeChannels();
           }
@@ -32,36 +33,44 @@ class PusherService {
           print("❌ Pusher error: $message (code: $code) - $e");
         },
         onEvent: (event) {
-          print(
-            "📨 Pusher event received: ${event.eventName} on channel: ${event.channelName}",
-          );
-          print("📨 Raw event data: ${event.data}");
+          print("📨 Pusher event: ${event.eventName} on ${event.channelName}");
+          print("📨 Raw data: ${event.data}");
 
-          final callback = _eventCallbacks[event.eventName];
-          if (callback != null) {
+          // ✅ Call ALL callbacks for this event
+          final callbacks = _eventCallbacks[event.eventName] ?? [];
+          if (callbacks.isNotEmpty) {
             try {
-              // Parse the data if it's a string
               dynamic parsedData = event.data;
               if (event.data is String) {
                 parsedData = json.decode(event.data);
               }
 
-              print("📨 Parsed event data: $parsedData");
-
-              // Handle Laravel broadcasting format - your event returns {sensorData: {...}}
+              // Handle Laravel broadcasting format
               if (parsedData is Map && parsedData.containsKey('sensorData')) {
                 parsedData = parsedData['sensorData'];
-                print("📨 Extracted sensorData: $parsedData");
               }
 
-              callback(parsedData);
+              // ✅ Notify all listeners
+              for (var callback in callbacks) {
+                try {
+                  callback(parsedData);
+                } catch (e) {
+                  print("❌ Callback error: $e");
+                }
+              }
             } catch (e) {
-              print("❌ Error parsing event data: $e");
-              print("❌ Raw data: ${event.data}");
-              callback(event.data); // Use raw data as fallback
+              print("❌ Parse error: $e");
+              // Fallback to raw data
+              for (var callback in callbacks) {
+                try {
+                  callback(event.data);
+                } catch (e) {
+                  print("❌ Callback fallback error: $e");
+                }
+              }
             }
           } else {
-            print("⚠️  No callback registered for event: ${event.eventName}");
+            print("⚠️  No callbacks for event: ${event.eventName}");
           }
         },
       );
@@ -76,7 +85,7 @@ class PusherService {
   Future<void> subscribeToChannel(String channelName) async {
     try {
       if (_subscribedChannels.contains(channelName)) {
-        print("⚠️  Already subscribed to $channelName");
+        print("✅ Already subscribed to $channelName");
         return;
       }
 
@@ -98,18 +107,30 @@ class PusherService {
     }
   }
 
+  // ✅ Support multiple callbacks per event
   void bindEvent(String eventName, Function(dynamic) callback) {
-    _eventCallbacks[eventName] = callback;
-    print("📋 Event bound: $eventName");
+    if (!_eventCallbacks.containsKey(eventName)) {
+      _eventCallbacks[eventName] = [];
+    }
+    _eventCallbacks[eventName]!.add(callback);
+    print(
+      "📋 Event bound: $eventName (${_eventCallbacks[eventName]!.length} callbacks)",
+    );
   }
 
-  void unbindEvent(String eventName) {
+  // ✅ Remove specific callback
+  void unbindEvent(String eventName, [Function(dynamic)? callback]) {
     _eventCallbacks.remove(eventName);
     print("📋 Event unbound: $eventName");
   }
 
-  bool get isConnected => _isConnected;
+  // ✅ Remove all callbacks for an event
+  void unbindAllEvent(String eventName) {
+    _eventCallbacks.remove(eventName);
+    print("📋 All callbacks unbound for: $eventName");
+  }
 
+  bool get isConnected => _isConnected;
   Set<String> get subscribedChannels => Set.unmodifiable(_subscribedChannels);
 
   Future<void> disconnect() async {
@@ -124,7 +145,6 @@ class PusherService {
     }
   }
 
-  // Force reconnection
   Future<void> reconnect() async {
     await disconnect();
     await _initPusher();

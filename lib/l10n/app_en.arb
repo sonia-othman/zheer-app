@@ -1,0 +1,91 @@
+{
+  "@@locale": "en",
+  "appTitle": "Smart Sensor Dashboard",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "home": "Home",
+  "notifications": "Notifications",
+  "deviceDashboard": "Device Dashboard",
+  "settings": "Settings",
+  
+  "deviceId": "Device ID",
+  "status": "Status",
+  "temperature": "Temperature",
+  "battery": "Battery",
+  "count": "Count",
+  "noNotifications": "No Notifications",
+  "opened": "Opened",
+  "closed": "Closed",
+  "noData": "No Data",
+  "daily": "Daily",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "tempAndBattery": "Temperature & Battery Levels",
+  "door_opened": "Door opened 🚪",
+  "door_closed": "Door closed ✅",
+  "temp_too_high": "Temperature is too high: {temperature}°C 🔥",
+  "temp_too_low": "Temperature is too low: {temperature}°C ❄️",
+  "connection_lost": "Lost connection to sensor ❌",
+  "battery_critical": "Battery level critical: {battery}V 🔋",
+  "battery_low": "Battery level low: {battery}V ⚠️",
+  "door_open_too_long": "Door has been open for more than {minutes} minute(s) ⚠️",
+  "errorLoadingData": "Error Loading Data",
+  "tryAgain": "Try Again",
+  "refresh": "Refresh",
+  "loadMore": "Load More",
+  "firstDevice": "First Device",
+  "secondDevice": "Second Device", 
+  "thirdDevice": "Third Device",
+  "labDoor": "IoT Lab Door",
+  "labWindow": "IoT Lab Window",
+  "department": "Department Locker",
+  "retry": "Retry",
+  "deviceStats": "Device Statistics",
+  "sensorNotRegistered": "Sensor Not Registered",
+  "notAvailable": "Not Available",
+
+  "temperatureShort": "Temp",
+  "apiError": "API Error",
+  "retryApiCall": "Retry API Call",
+  
+  "noDataAvailable": "No data available for selected time range",
+  "noNotificationsAvailable": "No notifications available",
+  "noMoreNotifications": "No more notifications",
+  
+  "eventCount": "Event Count",
+  "temperatureBatteryLevels": "Temperature & Battery Levels",
+  "temperatureC": "Temperature (°C)",
+  "batteryPercent": "Battery (%)",
+  
+  "allTypes": "All types",
+  "success": "Success",
+  "info": "Info",
+  "danger": "Danger",
+  "warning": "Warning",
+  
+  "justNow": "Just now",
+  "minutesAgo": "{minutes}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{hours}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "unknownDate": "Unknown date",
+  "invalidDate": "Invalid date",
+  
+  "device": "Device",
+  "unregistered": "Unregistered"
+}

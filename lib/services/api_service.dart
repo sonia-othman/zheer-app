@@ -205,11 +205,32 @@ class ApiService {
   }
 
   // Notification Methods
-  Future<List<dynamic>> getNotifications({int page = 1, int limit = 20}) async {
-    final response = await _getJson(
-      'api/notifications?page=$page&limit=$limit',
+  // Replace the getNotifications method in your ApiService with this:
+
+  Future<Map<String, dynamic>> getNotifications({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final url = Uri.parse(
+      '${config.apiBaseUrl}/api/notifications/load-more?page=$page&limit=$limit',
     );
-    return List<dynamic>.from(response['notifications'] ?? []);
+    print('🌐 Calling Notifications API: $url');
+
+    final response = await http.get(url);
+    print('🔧 Notifications Response status: ${response.statusCode}');
+    print('📦 Notifications Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return {
+        'notifications': List<dynamic>.from(data['notifications'] ?? []),
+        'hasMore': data['hasMore'] ?? false,
+      };
+    } else {
+      throw Exception(
+        'Notifications API failed with status ${response.statusCode}',
+      );
+    }
   }
 
   // Language Methods
