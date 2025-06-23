@@ -5,19 +5,17 @@ class NotificationTranslator {
   static String translate({
     required BuildContext context,
     required String? key,
-    dynamic rawData, // <-- changed from Map<String, dynamic>? to dynamic
+    dynamic rawData,
   }) {
     final l10n = AppLocalizations.of(context)!;
 
     if (key == null) return '';
 
-    // Clean key
     String cleanKey =
         key.startsWith('notifications.')
             ? key.substring('notifications.'.length)
             : key;
 
-    // Safely normalize rawData to Map<String, dynamic> if possible
     Map<String, dynamic>? data;
     try {
       if (rawData is Map<String, dynamic>) {
@@ -31,7 +29,6 @@ class NotificationTranslator {
       data = null;
     }
 
-    // Translation logic
     switch (cleanKey) {
       case 'door_opened':
         return l10n.door_opened;
@@ -45,15 +42,15 @@ class NotificationTranslator {
         return l10n.connection_lost;
       case 'battery_critical':
         return l10n.battery_critical(data?['battery'] ?? '--');
-      case 'battery_low': // Added missing case
+      case 'battery_low':
         return l10n.battery_low(data?['battery'] ?? '--');
-      case 'door_open_too_long': // Added missing case - THIS WAS THE PROBLEM
+      case 'door_open_too_long':
         final minutes = data?['minutes'];
         final roundedMinutes =
             minutes is num ? minutes.round() : (minutes ?? '--');
         return l10n.door_open_too_long(roundedMinutes);
       default:
-        return cleanKey; // fallback to key if unknown
+        return cleanKey;
     }
   }
 }

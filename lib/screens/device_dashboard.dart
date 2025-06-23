@@ -332,7 +332,6 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                   enable: true,
                   color: Color(0xFF2E3B4E),
                 ),
-                // ✅ Enable real-time updates
                 enableAxisAnimation: true,
                 series: <CartesianSeries<SensorData, String>>[
                   ColumnSeries<SensorData, String>(
@@ -349,7 +348,6 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(4),
                     ),
-                    // ✅ Store controller reference
                   ),
                 ],
               ),
@@ -411,7 +409,6 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                   position: LegendPosition.top,
                   overflowMode: LegendItemOverflowMode.wrap,
                 ),
-                // ✅ Enable real-time updates
                 enableAxisAnimation: true,
                 series: <CartesianSeries<SensorData, String>>[
                   LineSeries<SensorData, String>(
@@ -433,7 +430,6 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                       borderColor: Color(0xFFE74C3C),
                       color: Colors.white,
                     ),
-                    // ✅ Store controller reference
                   ),
                   LineSeries<SensorData, String>(
                     dataSource: data,
@@ -454,7 +450,6 @@ class _DeviceDashboardState extends State<DeviceDashboard> {
                       borderColor: Color(0xFF2ECC71),
                       color: Colors.white,
                     ),
-                    // ✅ Store controller reference
                     onRendererCreated: (ChartSeriesController controller) {},
                   ),
                 ],

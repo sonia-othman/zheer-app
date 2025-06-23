@@ -111,8 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             dateLabel: null,
                           ),
                           isUnregistered: true,
-                          deviceIndex:
-                              unregisteredIndex, // Pass the device index
+                          deviceIndex: unregisteredIndex,
                         );
                       }
                       final device = provider.latestDevices[index];
@@ -130,8 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                         child: DeviceCard(
                           sensorData: device,
-                          deviceIndex:
-                              index, // Pass the device index for registered devices too
+                          deviceIndex: index,
                         ),
                       );
                     },

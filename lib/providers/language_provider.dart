@@ -7,7 +7,6 @@ class LanguageProvider extends ChangeNotifier {
   Locale _currentLocale = const Locale('en', '');
   List<String> _availableLanguages = ['en', 'ar', 'ku'];
 
-  // Static supported locales
   static const List<Locale> supportedLocales = [
     Locale('en', ''),
     Locale('ar', ''),
@@ -23,7 +22,6 @@ class LanguageProvider extends ChangeNotifier {
   List<String> get availableLanguages => _availableLanguages;
   String get currentLanguageCode => _currentLocale.languageCode;
 
-  // Enhanced language names with native names
   String getLanguageName(String code) {
     switch (code) {
       case 'en':
@@ -31,13 +29,12 @@ class LanguageProvider extends ChangeNotifier {
       case 'ar':
         return 'العربية';
       case 'ku':
-        return 'کوردی'; // Kurdish in Kurdish script
+        return 'کوردی';
       default:
         return code.toUpperCase();
     }
   }
 
-  // Get language name in English (useful for debugging)
   String getLanguageNameInEnglish(String code) {
     switch (code) {
       case 'en':
@@ -56,7 +53,6 @@ class LanguageProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final savedLang = prefs.getString('selected_language') ?? 'en';
 
-      // Validate that the saved language is supported
       if (_availableLanguages.contains(savedLang)) {
         _currentLocale = Locale(savedLang, '');
       } else {
@@ -74,14 +70,12 @@ class LanguageProvider extends ChangeNotifier {
     try {
       final languages = await _apiService.getAvailableLanguages();
       if (languages.isNotEmpty) {
-        // Ensure Kurdish is always available even if API doesn't return it
         final allLanguages = <String>{'en', 'ar', 'ku', ...languages}.toList();
         _availableLanguages = allLanguages;
         notifyListeners();
       }
     } catch (e) {
       debugPrint('Error loading available languages: $e');
-      // Keep default languages if API fails
     }
   }
 
@@ -92,19 +86,15 @@ class LanguageProvider extends ChangeNotifier {
     }
 
     try {
-      // Try to update on server (optional)
       bool serverSuccess = true;
       try {
         serverSuccess = await _apiService.switchLanguage(languageCode);
       } catch (e) {
         debugPrint('Server language update failed: $e');
-        // Continue with local update even if server fails
       }
 
-      // Update local state
       _currentLocale = Locale(languageCode, '');
 
-      // Save to preferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selected_language', languageCode);
 
@@ -129,12 +119,11 @@ class LanguageProvider extends ChangeNotifier {
     return isRTL() ? TextDirection.rtl : TextDirection.ltr;
   }
 
-  // Get appropriate font family for current language
   String getFontFamily() {
     switch (_currentLocale.languageCode) {
       case 'ar':
       case 'ku':
-        return 'NotoSansArabic'; // Good for both Arabic and Kurdish
+        return 'NotoSansArabic';
       case 'en':
       default:
         return 'Roboto';

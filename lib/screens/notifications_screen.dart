@@ -14,14 +14,45 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   late NotificationProvider _provider;
-  bool _isLoadingMore = false;
+  ScrollController? _scrollController;
   String _filterType = '';
 
   @override
   void initState() {
     super.initState();
-    _provider = Provider.of<NotificationProvider>(context, listen: false);
+    _initializeController();
     _loadFirstPage();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _provider = Provider.of<NotificationProvider>(context, listen: false);
+  }
+
+  void _initializeController() {
+    _provider = Provider.of<NotificationProvider>(context, listen: false);
+    _scrollController?.dispose();
+    _scrollController = ScrollController();
+    _setupScrollListener();
+  }
+
+  @override
+  void dispose() {
+    _scrollController?.dispose();
+    super.dispose();
+  }
+
+  void _setupScrollListener() {
+    if (_scrollController != null) {
+      _scrollController!.addListener(() {
+        if (_scrollController!.hasClients &&
+            _scrollController!.position.pixels >=
+                _scrollController!.position.maxScrollExtent - 200) {
+          _loadMore();
+        }
+      });
+    }
   }
 
   Future<void> _loadFirstPage() async {
@@ -30,10 +61,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _loadMore() async {
-    if (_provider.hasMore && !_isLoadingMore) {
-      setState(() => _isLoadingMore = true);
+    if (_provider.hasMore && !_provider.isLoading) {
       await _provider.loadNotifications();
-      setState(() => _isLoadingMore = false);
     }
   }
 
@@ -52,39 +81,39 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       .where((n) => n['type']?.toString() == _filterType)
                       .toList();
 
-          if (provider.notifications.isEmpty) {
+          if (provider.notifications.isEmpty && !provider.isLoading) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  provider.hasMore
-                      ? const CircularProgressIndicator()
-                      : Column(
-                        children: [
-                          Icon(
-                            Icons.notifications_off_outlined,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
+                  Icon(
+                    Icons.notifications_off_outlined,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.noNotifications ?? 'No notifications',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
                   const SizedBox(height: 20),
-                  if (!provider.hasMore)
-                    TextButton(
-                      onPressed: _loadFirstPage,
-                      child: Text(l10n.refresh),
-                    ),
+                  TextButton(
+                    onPressed: _loadFirstPage,
+                    child: Text(l10n.refresh),
+                  ),
                 ],
               ),
             );
+          }
+
+          if (provider.notifications.isEmpty && provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
           }
 
           return RefreshIndicator(
             onRefresh: () => provider.refreshNotifications(),
             child: Column(
               children: [
-                // Filter dropdown
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Row(
@@ -128,25 +157,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                 ),
 
-                // Notification list
                 Expanded(
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    itemCount: filteredNotifications.length + 1,
+                    itemCount:
+                        filteredNotifications.length +
+                        (provider.hasMore || provider.isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == filteredNotifications.length) {
-                        if (provider.hasMore) {
-                          _loadMore();
+                        if (provider.isLoading) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        } else if (provider.hasMore) {
                           return Padding(
                             padding: const EdgeInsets.all(16),
                             child: Center(
-                              child:
-                                  _isLoadingMore
-                                      ? const CircularProgressIndicator()
-                                      : ElevatedButton(
-                                        onPressed: _loadMore,
-                                        child: Text(l10n.loadMore),
-                                      ),
+                              child: ElevatedButton(
+                                onPressed: _loadMore,
+                                child: Text(l10n.loadMore),
+                              ),
                             ),
                           );
                         } else {
@@ -206,9 +238,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   void _handleNotificationTap(Map<String, dynamic> notification) {
-    if (notification['device_id'] != null) {
-      // Navigate to device detail if needed
-    }
+    if (notification['device_id'] != null) {}
   }
 }
 
@@ -246,10 +276,8 @@ class NotificationCard extends StatelessWidget {
       if (difference.inMinutes < 1) {
         return l10n.justNow;
       } else if (difference.inMinutes < 60) {
-        // Fixed: Use the proper localization method
         return l10n.minutesAgo(difference.inMinutes);
       } else if (difference.inHours < 24) {
-        // Fixed: Use the proper localization method
         return l10n.hoursAgo(difference.inHours);
       } else {
         return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
@@ -283,10 +311,8 @@ class NotificationCard extends StatelessWidget {
     final color = _getTypeColor(type);
     final message = NotificationTranslator.translate(
       context: context,
-      key:
-          notification['translation_key'], // Use 'translation_key' instead of 'key'
-      rawData:
-          notification['translation_params'], // Use 'translation_params' instead of 'data'
+      key: notification['translation_key'],
+      rawData: notification['translation_params'],
     );
 
     return Padding(

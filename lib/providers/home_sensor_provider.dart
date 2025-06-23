@@ -10,8 +10,7 @@ class HomeSensorProvider extends ChangeNotifier {
   List<SensorData> _latestDevices = [];
   bool _isLoading = false;
   String? _errorMessage;
-  
-  // ✅ Store callback reference for proper cleanup
+
   late Function(dynamic) _realtimeCallback;
 
   HomeSensorProvider(this._apiService, this._pusherService) {
@@ -19,7 +18,6 @@ class HomeSensorProvider extends ChangeNotifier {
     _initPusher();
   }
 
-  // Getters
   List<SensorData> get latestDevices => _latestDevices;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -56,11 +54,9 @@ class HomeSensorProvider extends ChangeNotifier {
   void _initPusher() async {
     try {
       print("📡 HomeSensor: Initializing Pusher...");
-      
-      // ✅ Subscribe to channel
+
       await _pusherService.subscribeToChannel('sensor-data');
 
-      // ✅ Bind with callback reference
       _pusherService.bindEvent('SensorDataUpdated', _realtimeCallback);
 
       print("✅ HomeSensor: Pusher ready");
@@ -85,7 +81,7 @@ class HomeSensorProvider extends ChangeNotifier {
       final index = _latestDevices.indexWhere(
         (d) => d.deviceId == updated.deviceId,
       );
-      
+
       if (index != -1) {
         _latestDevices[index] = updated;
         print("♻️ HomeSensor: Updated existing device: ${updated.deviceId}");
@@ -109,7 +105,6 @@ class HomeSensorProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    // ✅ Properly unbind the specific callback
     _pusherService.unbindEvent('SensorDataUpdated', _realtimeCallback);
     print('🔌 HomeSensor: Disposed');
     super.dispose();

@@ -6,7 +6,7 @@ import 'package:zheer/l10n/generated/app_localizations.dart';
 class DeviceCard extends StatelessWidget {
   final SensorData sensorData;
   final bool isUnregistered;
-  final int? deviceIndex; // Add this to identify device number
+  final int? deviceIndex;
 
   const DeviceCard({
     Key? key,
@@ -15,15 +15,13 @@ class DeviceCard extends StatelessWidget {
     this.deviceIndex,
   }) : super(key: key);
 
-  // Get device icon based on device ID or index
   IconData _getDeviceIcon() {
     if (isUnregistered) {
-      if (deviceIndex == 1) return Icons.window; // Second device - window
-      if (deviceIndex == 2) return Icons.lock; // Third device - locked door
-      return Icons.sensors; // Default for other unregistered
+      if (deviceIndex == 1) return Icons.window;
+      if (deviceIndex == 2) return Icons.lock;
+      return Icons.sensors;
     }
 
-    // For registered devices, you can customize based on deviceId
     final deviceId = sensorData.deviceId.toLowerCase();
     if (deviceId.contains('door') || deviceId.contains('entry')) {
       return Icons.door_front_door;
@@ -33,10 +31,9 @@ class DeviceCard extends StatelessWidget {
       return Icons.motion_photos_on;
     }
 
-    return Icons.door_front_door; // Default icon for registered devices
+    return Icons.door_front_door;
   }
 
-  // Get device title (Device Number: Device Name)
   String _getDeviceTitle(AppLocalizations l10n) {
     if (isUnregistered) {
       switch (deviceIndex) {
@@ -49,17 +46,14 @@ class DeviceCard extends StatelessWidget {
       }
     }
 
-    // For registered devices - First Device: IoT Lab Door
     return '${l10n.firstDevice}: ${l10n.labDoor}';
   }
 
-  // Get device ID for subtitle
   String _getDeviceSubtitle(AppLocalizations l10n) {
     if (isUnregistered) {
       return l10n.sensorNotRegistered;
     }
 
-    // For registered devices, show the actual device ID
     return sensorData.deviceId;
   }
 
@@ -76,7 +70,7 @@ class DeviceCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 160, // Fixed height similar to Vue card
+      height: 160,
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
@@ -92,7 +86,6 @@ class DeviceCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icon Section
           Container(
             width: 50,
             height: 50,
@@ -119,13 +112,11 @@ class DeviceCard extends StatelessWidget {
 
           const SizedBox(width: 16),
 
-          // Content Section
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Title and Device ID
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -147,10 +138,8 @@ class DeviceCard extends StatelessWidget {
                   ],
                 ),
 
-                // Status and Values Row
                 Row(
                   children: [
-                    // Status Chip
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 11,
@@ -184,7 +173,6 @@ class DeviceCard extends StatelessWidget {
 
                     const SizedBox(width: 8),
 
-                    // Temperature Chip (only for registered devices)
                     if (!isUnregistered)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -207,7 +195,6 @@ class DeviceCard extends StatelessWidget {
 
                     const SizedBox(width: 8),
 
-                    // Battery Chip (only for registered devices)
                     if (!isUnregistered)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -230,7 +217,6 @@ class DeviceCard extends StatelessWidget {
                   ],
                 ),
 
-                // Updated time (only for registered devices)
                 if (!isUnregistered && updatedAt.isNotEmpty)
                   Row(
                     children: [

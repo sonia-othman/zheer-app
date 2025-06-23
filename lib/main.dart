@@ -17,10 +17,8 @@ import 'dart:io';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Allow HTTP for development
   HttpOverrides.global = MyHttpOverrides();
 
-  // App config
   final appConfig = AppConfig(
     apiBaseUrl: 'http://159.89.22.229',
     pusherKey: '10f9622a83d72895fe18',
@@ -101,7 +99,6 @@ class MyApp extends StatelessWidget {
             return supportedLocales.first;
           },
 
-          // ✅ This fixes the directionality issue for Kurdish
           builder: (context, child) {
             final locale = Localizations.localeOf(context);
             final isRTL =

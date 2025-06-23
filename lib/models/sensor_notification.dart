@@ -1,7 +1,7 @@
 class SensorNotification {
   final int id;
   final String deviceId;
-  final String type; // info, success, warning, danger
+  final String type;
   final String message;
   final String? translationKey;
   final Map<String, dynamic>? translationParams;
@@ -23,7 +23,6 @@ class SensorNotification {
     DateTime parseDateTime(dynamic value) {
       if (value == null) return DateTime.now();
       if (value is int) {
-        // Assuming Unix timestamp in seconds
         return DateTime.fromMillisecondsSinceEpoch(value * 1000);
       }
       if (value is String) {
@@ -75,7 +74,6 @@ class SensorNotification {
     }
   }
 
-  // Time ago helper
   String get timeAgo {
     final now = DateTime.now();
     final difference = now.difference(timestamp);

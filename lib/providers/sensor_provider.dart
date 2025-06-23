@@ -16,7 +16,6 @@ class SensorProvider with ChangeNotifier {
   String _currentFilter = 'daily';
   List<DateTime> _dailyTimeData = [];
 
-  // ✅ Store callback reference for proper cleanup
   late Function(dynamic) _realtimeCallback;
   bool _isRealtimeInitialized = false;
 
@@ -24,7 +23,6 @@ class SensorProvider with ChangeNotifier {
     _realtimeCallback = _handleRealtimeUpdate;
   }
 
-  // Getters
   List<SensorData> get filteredData => _currentDeviceData;
   SensorData? get currentDeviceLatest => _currentDeviceLatest;
   String get selectedDeviceId => _selectedDeviceId;
@@ -72,7 +70,6 @@ class SensorProvider with ChangeNotifier {
         filter: filter,
       );
 
-      // ✅ Filter out null or invalid data
       _currentDeviceData =
           data
               .where((item) => item != null)
@@ -81,7 +78,6 @@ class SensorProvider with ChangeNotifier {
 
       await loadCurrentDeviceLatest(deviceId);
 
-      // ✅ Initialize realtime after loading data
       if (!_isRealtimeInitialized) {
         initializeRealtimeUpdates();
       }
@@ -102,7 +98,6 @@ class SensorProvider with ChangeNotifier {
     }
   }
 
-  // ✅ Helper method to validate sensor data
   bool _isValidSensorData(SensorData data) {
     try {
       return data.deviceId.isNotEmpty &&
@@ -147,7 +142,6 @@ class SensorProvider with ChangeNotifier {
       return;
     }
 
-    // ✅ Validate new data before processing
     if (!_isValidSensorData(newData)) {
       print('⚠️ SensorProvider: Invalid realtime data received');
       return;
@@ -155,22 +149,44 @@ class SensorProvider with ChangeNotifier {
 
     print('📨 SensorProvider: Updating realtime data for $deviceId');
 
-    // Always update the latest data first
     _currentDeviceLatest = newData;
 
-    // Create properly formatted data point for charts
     final formattedData = _createFormattedDataPoint(newData);
     if (formattedData != null) {
-      // Handle data aggregation based on current filter
       _updateChartData(formattedData);
     }
 
-    // Force UI update
     notifyListeners();
     print('✅ SensorProvider: Real-time update completed');
   }
 
-  // ✅ Made nullable to handle edge cases
+  Duration _getOptimalTimeBucket(List<SensorData> existingData) {
+    if (existingData.isEmpty) {
+      return Duration(minutes: 15);
+    }
+
+    if (existingData.length < 2) {
+      return Duration(minutes: 15);
+    }
+
+    final timeSpan = existingData.last.createdAt.difference(
+      existingData.first.createdAt,
+    );
+    final averageGap = Duration(
+      milliseconds: timeSpan.inMilliseconds ~/ (existingData.length - 1),
+    );
+
+    if (averageGap.inMinutes <= 5) {
+      return Duration(minutes: 5);
+    } else if (averageGap.inMinutes <= 15) {
+      return Duration(minutes: 15);
+    } else if (averageGap.inMinutes <= 30) {
+      return Duration(minutes: 30);
+    } else {
+      return Duration(hours: 1);
+    }
+  }
+
   SensorData? _createFormattedDataPoint(SensorData newData) {
     try {
       String dateLabel;
@@ -179,7 +195,6 @@ class SensorProvider with ChangeNotifier {
       switch (_currentFilter) {
         case 'weekly':
           dateLabel = DateFormat('EEEE').format(newData.createdAt);
-          // Normalize to start of day for weekly aggregation
           aggregateTime = DateTime(
             newData.createdAt.year,
             newData.createdAt.month,
@@ -188,22 +203,54 @@ class SensorProvider with ChangeNotifier {
           break;
         case 'monthly':
           dateLabel = DateFormat('MMM d').format(newData.createdAt);
-          // Normalize to start of day for monthly aggregation
           aggregateTime = DateTime(
             newData.createdAt.year,
             newData.createdAt.month,
             newData.createdAt.day,
           );
           break;
-        default: // 'daily'
-          dateLabel = DateFormat('h:mm a').format(newData.createdAt);
-          // Normalize to start of hour for daily aggregation
-          aggregateTime = DateTime(
-            newData.createdAt.year,
-            newData.createdAt.month,
-            newData.createdAt.day,
-            newData.createdAt.hour,
-          );
+        default:
+          final bucketSize = _getOptimalTimeBucket(_currentDeviceData);
+
+          if (bucketSize.inMinutes <= 5) {
+            final minutes = (newData.createdAt.minute ~/ 5) * 5;
+            aggregateTime = DateTime(
+              newData.createdAt.year,
+              newData.createdAt.month,
+              newData.createdAt.day,
+              newData.createdAt.hour,
+              minutes,
+            );
+            dateLabel = DateFormat('h:mm a').format(aggregateTime);
+          } else if (bucketSize.inMinutes <= 15) {
+            final minutes = (newData.createdAt.minute ~/ 15) * 15;
+            aggregateTime = DateTime(
+              newData.createdAt.year,
+              newData.createdAt.month,
+              newData.createdAt.day,
+              newData.createdAt.hour,
+              minutes,
+            );
+            dateLabel = DateFormat('h:mm a').format(aggregateTime);
+          } else if (bucketSize.inMinutes <= 30) {
+            final minutes = (newData.createdAt.minute ~/ 30) * 30;
+            aggregateTime = DateTime(
+              newData.createdAt.year,
+              newData.createdAt.month,
+              newData.createdAt.day,
+              newData.createdAt.hour,
+              minutes,
+            );
+            dateLabel = DateFormat('h:mm a').format(aggregateTime);
+          } else {
+            aggregateTime = DateTime(
+              newData.createdAt.year,
+              newData.createdAt.month,
+              newData.createdAt.day,
+              newData.createdAt.hour,
+            );
+            dateLabel = DateFormat('h:mm a').format(aggregateTime);
+          }
           break;
       }
 
@@ -224,7 +271,6 @@ class SensorProvider with ChangeNotifier {
 
   void _updateChartData(SensorData formattedData) {
     try {
-      // Find existing data point in the same time bucket
       int existingIndex = -1;
 
       for (int i = 0; i < _currentDeviceData.length; i++) {
@@ -234,19 +280,15 @@ class SensorProvider with ChangeNotifier {
         switch (_currentFilter) {
           case 'weekly':
           case 'monthly':
-            // Same day
             isSameTimeBucket =
                 existing.createdAt.year == formattedData.createdAt.year &&
                 existing.createdAt.month == formattedData.createdAt.month &&
                 existing.createdAt.day == formattedData.createdAt.day;
             break;
-          default: // 'daily'
-            // Same hour
+          default:
             isSameTimeBucket =
-                existing.createdAt.year == formattedData.createdAt.year &&
-                existing.createdAt.month == formattedData.createdAt.month &&
-                existing.createdAt.day == formattedData.createdAt.day &&
-                existing.createdAt.hour == formattedData.createdAt.hour;
+                existing.createdAt.millisecondsSinceEpoch ==
+                formattedData.createdAt.millisecondsSinceEpoch;
             break;
         }
 
@@ -257,11 +299,9 @@ class SensorProvider with ChangeNotifier {
       }
 
       if (existingIndex != -1) {
-        // Update existing data point with aggregated values
         final existing = _currentDeviceData[existingIndex];
         final newCount = existing.count + 1;
 
-        // ✅ Safe temperature calculation with null checks
         double newTemperature = formattedData.temperature;
         if (existing.count > 0 &&
             existing.temperature.isFinite &&
@@ -274,9 +314,9 @@ class SensorProvider with ChangeNotifier {
 
         _currentDeviceData[existingIndex] = SensorData(
           deviceId: existing.deviceId,
-          status: formattedData.status, // Use latest status
+          status: formattedData.status,
           temperature: newTemperature,
-          battery: formattedData.battery, // Use latest battery
+          battery: formattedData.battery,
           count: newCount,
           createdAt: existing.createdAt,
           dateLabel: existing.dateLabel,
@@ -286,7 +326,6 @@ class SensorProvider with ChangeNotifier {
           '♻️ SensorProvider: Updated existing data bucket at index $existingIndex (count: $newCount)',
         );
       } else {
-        // Add new data point and sort by time
         _currentDeviceData.add(formattedData);
         _currentDeviceData.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
@@ -294,10 +333,8 @@ class SensorProvider with ChangeNotifier {
           '➕ SensorProvider: Added new data point for ${formattedData.dateLabel}',
         );
 
-        // Limit data points to keep charts readable
-        final maxPoints = _getMaxDataPoints();
+        final maxPoints = _getDynamicMaxDataPoints();
         if (_currentDeviceData.length > maxPoints) {
-          // Remove oldest data points
           _currentDeviceData =
               _currentDeviceData
                   .skip(_currentDeviceData.length - maxPoints)
@@ -310,15 +347,30 @@ class SensorProvider with ChangeNotifier {
     }
   }
 
-  int _getMaxDataPoints() {
+  int _getDynamicMaxDataPoints() {
     switch (_currentFilter) {
       case 'weekly':
-        return 7; // 7 days
+        return 7;
       case 'monthly':
-        return 31; // 31 days max
-      default: // 'daily'
-        return 24; // 24 hours
+        return 31;
+      default:
+        if (_currentDeviceData.isEmpty) return 50;
+
+        final bucketSize = _getOptimalTimeBucket(_currentDeviceData);
+        if (bucketSize.inMinutes <= 5) {
+          return 288;
+        } else if (bucketSize.inMinutes <= 15) {
+          return 96;
+        } else if (bucketSize.inMinutes <= 30) {
+          return 48;
+        } else {
+          return 24;
+        }
     }
+  }
+
+  int _getMaxDataPoints() {
+    return _getDynamicMaxDataPoints();
   }
 
   void initializeRealtimeUpdates() {
@@ -344,7 +396,6 @@ class SensorProvider with ChangeNotifier {
     try {
       print('📨 SensorProvider: Realtime update received: $data');
 
-      // ✅ Additional null safety checks
       if (data == null) {
         print('⚠️ SensorProvider: Received null data');
         return;
@@ -362,7 +413,6 @@ class SensorProvider with ChangeNotifier {
     }
   }
 
-  // Method to manually trigger chart refresh (useful for debugging)
   void forceChartRefresh() {
     print('🔄 SensorProvider: Forcing chart refresh');
     notifyListeners();

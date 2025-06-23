@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:zheer/providers/language_provider.dart';
-import 'package:zheer/utils/localization_helper.dart';
 
 class LanguageSwitcher extends StatelessWidget {
   final bool showAsDropdown;
@@ -86,7 +85,7 @@ class LanguageSwitcher extends StatelessWidget {
             final success = await languageProvider.changeLanguage(newLanguage);
 
             if (context.mounted) {
-              Navigator.of(context).pop(); // Close loading dialog
+              Navigator.of(context).pop();
 
               if (success) {
                 _showSnackBar(
@@ -157,10 +156,7 @@ class LanguageSwitcher extends StatelessWidget {
       case 'ar':
         return const Text('🇮🇶', style: TextStyle(fontSize: 20));
       case 'ku':
-        return const Text(
-          '🟨🔴🟢',
-          style: TextStyle(fontSize: 16),
-        ); // Kurdish flag colors
+        return const Text('🟨🔴🟢', style: TextStyle(fontSize: 16));
       default:
         return const Icon(Icons.translate);
     }
@@ -205,7 +201,7 @@ class LanguageSwitcher extends StatelessWidget {
                             )
                             : null,
                     onTap: () async {
-                      Navigator.of(context).pop(); // Close dialog first
+                      Navigator.of(context).pop();
 
                       if (!isSelected) {
                         _showLoadingDialog(context);
@@ -215,7 +211,7 @@ class LanguageSwitcher extends StatelessWidget {
                         );
 
                         if (context.mounted) {
-                          Navigator.of(context).pop(); // Close loading dialog
+                          Navigator.of(context).pop();
 
                           if (success) {
                             _showSnackBar(
@@ -280,7 +276,6 @@ class LanguageSwitcher extends StatelessWidget {
   }
 }
 
-// Simple icon-only version for app bars
 class LanguageSwitcherIcon extends StatelessWidget {
   final Color? iconColor;
   final double iconSize;
@@ -300,7 +295,6 @@ class LanguageSwitcherIcon extends StatelessWidget {
           ),
           onSelected: (String languageCode) async {
             if (languageCode != languageProvider.currentLanguageCode) {
-              // Show loading indicator
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -321,7 +315,7 @@ class LanguageSwitcherIcon extends StatelessWidget {
               );
 
               if (context.mounted) {
-                Navigator.of(context).pop(); // Close loading dialog
+                Navigator.of(context).pop();
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

@@ -7,7 +7,7 @@ class SensorData {
   final double battery;
   final int count;
   final DateTime createdAt;
-  final String? dateLabel; // used for weekly/monthly X-axis
+  final String? dateLabel;
 
   SensorData({
     required this.deviceId,
@@ -20,7 +20,6 @@ class SensorData {
   });
 
   factory SensorData.fromJson(Map<String, dynamic> json) {
-    // ✅ Enhanced null safety with better type handling
     return SensorData(
       deviceId: _parseString(json['device_id']),
       status: _parseBool(json['status']),
@@ -32,7 +31,6 @@ class SensorData {
     );
   }
 
-  // ✅ Helper methods for safe parsing
   static String _parseString(dynamic value) {
     if (value == null) return '';
     return value.toString();
@@ -84,7 +82,6 @@ class SensorData {
     return DateTime.now();
   }
 
-  // ✅ Helper method to validate data integrity
   bool isValid() {
     return deviceId.isNotEmpty &&
         temperature.isFinite &&
@@ -92,7 +89,6 @@ class SensorData {
         count >= 0;
   }
 
-  // ✅ Copy method for easy data manipulation
   SensorData copyWith({
     String? deviceId,
     bool? status,
@@ -116,7 +112,7 @@ class SensorData {
   factory SensorData.fromGrouped(Map<String, dynamic> json) {
     final createdAt = _parseDateTime(json['created_at']);
     return SensorData(
-      deviceId: '', // not needed for grouped chart display
+      deviceId: '',
       status: false,
       temperature: 0,
       battery: 0,

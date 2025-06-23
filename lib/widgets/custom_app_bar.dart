@@ -17,22 +17,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.actions,
     this.showBackButton = true,
-    this.showLanguageSwitcher =
-        true, // Default to true to show language switcher
+    this.showLanguageSwitcher = true,
     this.onBackPressed,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Build the actions list
     List<Widget> appBarActions = [];
 
-    // Add language switcher if enabled
     if (showLanguageSwitcher) {
       appBarActions.add(_buildLanguageSwitcher(context));
     }
 
-    // Add any additional actions
     if (actions != null) {
       appBarActions.addAll(actions!);
     }
@@ -79,7 +75,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: 'Change Language',
           onSelected: (String languageCode) async {
             if (languageCode != languageProvider.currentLanguageCode) {
-              // Show loading dialog
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -101,9 +96,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               );
 
               if (context.mounted) {
-                Navigator.of(context).pop(); // Close loading dialog
+                Navigator.of(context).pop();
 
-                // Show success/error message
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

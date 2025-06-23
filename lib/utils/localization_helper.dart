@@ -22,7 +22,6 @@ class LocalizationHelper {
     return Localizations.localeOf(context).languageCode == 'en';
   }
 
-  // Format time based on locale
   static String formatTimeAgo(BuildContext context, DateTime dateTime) {
     final l10n = of(context);
     final now = DateTime.now();
@@ -35,7 +34,6 @@ class LocalizationHelper {
     } else if (difference.inHours < 24) {
       return l10n.hoursAgo(difference.inHours);
     } else {
-      // Format date based on locale
       if (isArabic(context) || isKurdish(context)) {
         return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
       } else {
@@ -44,7 +42,6 @@ class LocalizationHelper {
     }
   }
 
-  // Get text direction based on locale
   static TextDirection getTextDirection(BuildContext context) {
     return isArabic(context) || isKurdish(context)
         ? TextDirection.rtl

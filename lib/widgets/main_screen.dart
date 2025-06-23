@@ -84,35 +84,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // Alternative: Simple red dot indicator (if you prefer just a dot instead of count)
-  Widget _buildNotificationIconWithDot(BuildContext context) {
-    return Consumer<NotificationProvider>(
-      builder: (context, provider, child) {
-        final hasUnread = provider.hasUnreadNotifications;
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Icon(Icons.notifications),
-            if (hasUnread)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,9 +94,7 @@ class _MainScreenState extends State<MainScreen> {
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: _buildNotificationIcon(
-              context,
-            ), // Use _buildNotificationIconWithDot for simple dot
+            icon: _buildNotificationIcon(context),
             label: 'Notifications',
           ),
         ],

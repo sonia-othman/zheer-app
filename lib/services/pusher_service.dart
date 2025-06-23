@@ -6,7 +6,6 @@ class PusherService {
   final AppConfig config;
   late PusherChannelsFlutter pusher;
 
-  // ✅ Support multiple callbacks per event
   final Map<String, List<Function(dynamic)>> _eventCallbacks = {};
   bool _isConnected = false;
   final Set<String> _subscribedChannels = {};
@@ -36,7 +35,6 @@ class PusherService {
           print("📨 Pusher event: ${event.eventName} on ${event.channelName}");
           print("📨 Raw data: ${event.data}");
 
-          // ✅ Call ALL callbacks for this event
           final callbacks = _eventCallbacks[event.eventName] ?? [];
           if (callbacks.isNotEmpty) {
             try {
@@ -45,12 +43,10 @@ class PusherService {
                 parsedData = json.decode(event.data);
               }
 
-              // Handle Laravel broadcasting format
               if (parsedData is Map && parsedData.containsKey('sensorData')) {
                 parsedData = parsedData['sensorData'];
               }
 
-              // ✅ Notify all listeners
               for (var callback in callbacks) {
                 try {
                   callback(parsedData);
@@ -60,7 +56,6 @@ class PusherService {
               }
             } catch (e) {
               print("❌ Parse error: $e");
-              // Fallback to raw data
               for (var callback in callbacks) {
                 try {
                   callback(event.data);
@@ -107,7 +102,6 @@ class PusherService {
     }
   }
 
-  // ✅ Support multiple callbacks per event
   void bindEvent(String eventName, Function(dynamic) callback) {
     if (!_eventCallbacks.containsKey(eventName)) {
       _eventCallbacks[eventName] = [];
@@ -118,13 +112,11 @@ class PusherService {
     );
   }
 
-  // ✅ Remove specific callback
   void unbindEvent(String eventName, [Function(dynamic)? callback]) {
     _eventCallbacks.remove(eventName);
     print("📋 Event unbound: $eventName");
   }
 
-  // ✅ Remove all callbacks for an event
   void unbindAllEvent(String eventName) {
     _eventCallbacks.remove(eventName);
     print("📋 All callbacks unbound for: $eventName");
